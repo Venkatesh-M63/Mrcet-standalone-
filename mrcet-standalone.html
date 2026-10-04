@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MRCET AI Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0B1A33;
+  --ink-2:#13284C;
+  --gold:#B8923D;
+  --gold-light:#D9BA76;
+  --paper:#FAF8F4;
+  --paper-dim:#F1EEE6;
+  --slate:#5B6472;
+  --slate-light:#8891A0;
+  --line:#E4E0D6;
+  --white:#FFFFFF;
+  --good:#2E7D5B;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+:root:not([data-theme="light"]){
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1626;
+    --paper-dim:#141F35;
+    --ink:#F4F1E9;
+    --ink-2:#EDE8DA;
+    --line:#26314A;
+    --slate:#AEB7C6;
+    --slate-light:#7C8699;
+    --white:#182238;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1626;
+  --paper-dim:#141F35;
+  --ink:#F4F1E9;
+  --ink-2:#EDE8DA;
+  --line:#26314A;
+  --slate:#AEB7C6;
+  --slate-light:#7C8699;
+  --white:#182238;
+}
+html{ scroll-padding-top:env(safe-area-inset-top,0px); height:100%; }
+*{ margin:0; padding:0; box-sizing:border-box; }
+body{
+  height:100%;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Inter',-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  flex-direction:column;
+}
+::selection{ background:var(--gold-light); color:var(--ink); }
+
+/* ---------- KEY BAR ---------- */
+.keybar{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:8px 16px; background:var(--gold-light); color:var(--ink);
+  font-size:12.5px; font-weight:500;
+}
+.keybar button{
+  border:none; background:var(--ink); color:var(--paper);
+  padding:6px 12px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer;
+  flex-shrink:0;
+}
+.keybar.ok{ background:#CFE3D6; }
+
+/* ---------- MODAL ---------- */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(11,26,51,.55);
+  display:none; align-items:center; justify-content:center; z-index:100; padding:20px;
+}
+.modal-overlay.show{ display:flex; }
+.modal{
+  background:var(--white); border-radius:14px; padding:22px;
+  max-width:420px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+.modal h2{ font-family:'Source Serif 4',serif; font-size:19px; margin-bottom:8px; color:var(--ink); }
+.modal p{ font-size:13px; color:var(--slate); line-height:1.5; margin-bottom:14px; }
+.modal input{
+  width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px;
+  font-size:14px; font-family:inherit; margin-bottom:12px; color:var(--ink); background:var(--paper);
+}
+.modal input:focus{ outline:none; border-color:var(--gold); }
+.modal-actions{ display:flex; gap:8px; justify-content:flex-end; }
+.modal-actions button{ padding:9px 16px; border-radius:8px; border:none; font-size:13px; font-weight:600; cursor:pointer; }
+.btn-save{ background:var(--ink); color:var(--paper); }
+.btn-cancel{ background:var(--paper-dim); color:var(--ink); }
+.modal .warn{
+  font-size:11.5px; color:#8a5a1c; background:#FBF1DE; border-left:3px solid var(--gold);
+  padding:8px 10px; border-radius:6px; margin-bottom:12px;
+}
+
+/* ---------- TOP BAR ---------- */
+header.top{
+  position:sticky; top:0; z-index:40;
+  padding:calc(14px + env(safe-area-inset-top,0px)) 20px 14px;
+  background:var(--ink);
+  color:var(--paper);
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.brand{ display:flex; align-items:center; gap:11px; }
+.brand-mark{
+  width:38px; height:38px; border-radius:9px;
+  background:linear-gradient(155deg,var(--gold-light),var(--gold));
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Source Serif 4',serif; font-weight:700; font-size:17px; color:var(--ink);
+  flex-shrink:0;
+}
+.brand-text h1{ font-size:15px; font-weight:600; letter-spacing:.2px; }
+.brand-text p{ font-size:11.5px; color:var(--gold-light); margin-top:1px; }
+.top-codes{ display:flex; gap:6px; font-size:11px; color:rgba(250,248,244,.65); }
+.top-codes span{ border:1px solid rgba(255,255,255,.18); border-radius:5px; padding:3px 7px; }
+@media (max-width:520px){ .top-codes{ display:none; } }
+
+/* ---------- LAYOUT ---------- */
+main{ flex:1; display:flex; flex-direction:column; min-height:0; max-width:900px; width:100%; margin:0 auto; position:relative; }
+
+/* ---------- STAT STRIP ---------- */
+.stats{
+  display:flex; overflow-x:auto; gap:0;
+  border-bottom:1px solid var(--line);
+  background:var(--paper-dim);
+  flex-shrink:0;
+}
+.stats::-webkit-scrollbar{ display:none; }
+.stat{
+  flex:1 0 auto; min-width:118px;
+  padding:12px 16px;
+  border-right:1px solid var(--line);
+  text-align:left;
+}
+.stat:last-child{ border-right:none; }
+.stat b{ display:block; font-family:'Source Serif 4',serif; font-size:19px; font-weight:600; color:var(--ink); }
+.stat span{ font-size:10.5px; color:var(--slate); text-transform:uppercase; letter-spacing:.4px; }
+
+/* ---------- TOPIC CHIPS ---------- */
+.chips{
+  display:flex; gap:8px; overflow-x:auto; padding:12px 16px;
+  flex-shrink:0; -webkit-overflow-scrolling:touch;
+}
+.chips::-webkit-scrollbar{ display:none; }
+.chip{
+  flex:0 0 auto;
+  padding:8px 14px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  font-size:13px; font-weight:500;
+  background:var(--white);
+  color:var(--ink);
+  cursor:pointer;
+  white-space:nowrap;
+  transition:border-color .15s, background .15s;
+}
+.chip:hover{ border-color:var(--gold); background:var(--paper-dim); }
+.chip:active{ transform:scale(.98); }
+
+/* ---------- CHAT ---------- */
+.chat-scroll{
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  padding:8px 16px 12px;
+  display:flex; flex-direction:column; gap:16px;
+}
+.msg{ display:flex; gap:10px; max-width:100%; animation:rise .28s ease; }
+@keyframes rise{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+.msg.user{ flex-direction:row-reverse; }
+.avatar{
+  width:30px; height:30px; border-radius:8px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Source Serif 4',serif; font-weight:700; font-size:13px;
+}
+.msg.bot .avatar{ background:var(--ink); color:var(--gold-light); }
+.msg.user .avatar{ background:var(--gold); color:var(--ink); }
+.bubble{
+  padding:11px 15px; border-radius:14px;
+  font-size:14.5px; line-height:1.55;
+  max-width:78%;
+  overflow-wrap:break-word;
+}
+.msg.bot .bubble{ background:var(--white); border:1px solid var(--line); border-top-left-radius:4px; color:var(--ink); }
+.msg.user .bubble{ background:var(--ink); color:var(--paper); border-top-right-radius:4px; }
+.bubble p{ margin:0 0 8px; }
+.bubble p:last-child{ margin-bottom:0; }
+.bubble ul{ margin:6px 0 8px 18px; }
+.bubble li{ margin-bottom:3px; }
+.bubble table{ border-collapse:collapse; width:100%; margin:8px 0; font-size:13px; }
+.bubble th, .bubble td{ border:1px solid var(--line); padding:5px 8px; text-align:left; }
+.bubble th{ background:var(--paper-dim); font-weight:600; }
+.bubble strong{ color:var(--ink); font-weight:600; }
+.bubble .note{
+  margin-top:8px; padding:8px 10px; border-radius:8px;
+  background:var(--paper-dim); border-left:3px solid var(--gold);
+  font-size:12.5px; color:var(--slate);
+}
+.typing{ display:flex; gap:4px; padding:6px 2px; }
+.typing i{ width:6px; height:6px; border-radius:50%; background:var(--slate-light); animation:bounce 1.1s infinite; }
+.typing i:nth-child(2){ animation-delay:.15s; }
+.typing i:nth-child(3){ animation-delay:.3s; }
+@keyframes bounce{ 0%,60%,100%{ transform:translateY(0); opacity:.5; } 30%{ transform:translateY(-4px); opacity:1; } }
+
+/* ---------- INPUT ---------- */
+.input-bar{
+  flex-shrink:0;
+  display:flex; gap:8px; align-items:flex-end;
+  padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));
+  border-top:1px solid var(--line);
+  background:var(--paper);
+}
+.input-bar textarea{
+  flex:1; resize:none; border:1px solid var(--line); border-radius:12px;
+  padding:11px 14px; font-size:14.5px; font-family:inherit; color:var(--ink);
+  background:var(--white); max-height:110px; line-height:1.4;
+}
+.input-bar textarea:focus{ outline:none; border-color:var(--gold); }
+.input-bar textarea::placeholder{ color:var(--slate-light); }
+.send-btn{
+  width:42px; height:42px; border-radius:11px; border:none; flex-shrink:0;
+  background:var(--ink); color:var(--gold-light); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .15s;
+}
+.send-btn:hover{ background:var(--ink-2); }
+.send-btn:disabled{ opacity:.4; cursor:default; }
+.send-btn svg{ width:18px; height:18px; }
+
+/* footer strip */
+.foot{
+  flex-shrink:0; text-align:center; font-size:10.5px; color:var(--slate-light);
+  padding:6px 16px 8px; border-top:1px solid var(--line); background:var(--paper-dim);
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <div class="brand-mark">M</div>
+    <div class="brand-text">
+      <h1>MRCET AI Assistant</h1>
+      <p>Malla Reddy College of Engineering &amp; Technology</p>
+    </div>
+  </div>
+  <div class="top-codes"><span>Code N3</span><span>MLRD</span></div>
+</header>
+
+<div class="keybar" id="keyBar">
+  <span id="keyStatus">🔑 Add your Anthropic API key to enable live answers</span>
+  <button id="keyBtn">Add key</button>
+</div>
+
+<main>
+  <div class="stats" id="stats"></div>
+  <div class="chips" id="chips"></div>
+  <div class="chat-scroll" id="chatScroll"></div>
+  <div class="input-bar">
+    <textarea id="inputBox" rows="1" placeholder="Ask about admissions, fees, placements, hostel…"></textarea>
+    <button class="send-btn" id="sendBtn" aria-label="Send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+    </button>
+  </div>
+  <div class="foot">Answers are based on MRCET information on file · Verify time-sensitive details with the college directly</div>
+</main>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>Connect your Anthropic API key</h2>
+    <div class="warn">This key is stored only in your browser (localStorage) and is sent directly from your browser to Anthropic's API. Anyone using this deployed page from their own browser will need to enter their own key, or the key will be visible to them if you hard-code one. Don't use a key with a high spending limit on a publicly shared page.</div>
+    <p>Get a key at console.anthropic.com → API Keys. Paste it below to enable live, grounded answers.</p>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn-cancel" id="modalCancel">Cancel</button>
+      <button class="btn-save" id="modalSave">Save key</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ KNOWLEDGE BASE ============ */
+const KB = {
+  overview: {
+    about: "Malla Reddy College of Engineering & Technology (MRCET), founded in 2004, is an autonomous constituent college of the Malla Reddy Group of Institutions (MRGI), set on a green campus. It is approved by AICTE, permanently affiliated with JNTUH, and accredited by NBA and NAAC with an 'A' Grade. MRCET emphasizes holistic student growth through skill and value-added programs aligned with job market demands.",
+    code: "N3",
+    identifier: "MLRD"
+  },
+  contact: {
+    address: "Maisammaguda, Dhulapally, Kompally, Medchal Mandal, Hyderabad - 500100, Telangana, India.",
+    phones: ["+91 9133555162", "+91 9133555183", "+91 7207034237"],
+    emails: ["mrcet2004@gmail.com", "mrcetoffice2004@gmail.com", "adminoffice@mrcet.ac.in"],
+    website: "mrcet.com",
+    admissions: { phones:["9133555162","9133555183"], email:"adminoffice@mrcet.ac.in" },
+    placementCell: { name:"Dr. I. Umamaheswara Rao (TPO)", phone:"+91 8309333812", email:"tpomrcetplacements@gmail.com" },
+    deanPlacements: { name:"Prof. K. Kailasa Rao (Dean of Placements, MRGI)", phone:"+91 9908192184", email:"mrgiplacementsdean@gmail.com" },
+    examBranch: "mrcetoffice2004@gmail.com"
+  },
+  departments: {
+    ug: [
+      {name:"CSE – Computer Science and Engineering", intake:420},
+      {name:"CSE (AI & ML) – Artificial Intelligence and Machine Learning", intake:300},
+      {name:"CSE (DS) – Data Science", intake:240},
+      {name:"ECE – Electronics and Communication Engineering", intake:300},
+      {name:"Information Technology (IT)", intake:180},
+      {name:"Aeronautical Engineering (ANE)", intake:120},
+      {name:"CSE (CS) – Cyber Security", intake:60},
+      {name:"CSE (IoT) – Internet of Things", intake:60},
+      {name:"EEE – Electrical and Electronics Engineering", intake:30},
+      {name:"Mechanical Engineering (MECH)", intake:30}
+    ],
+    pg: [
+      {name:"MBA – Master of Business Administration", intake:240},
+      {name:"M.Tech – Computer Science and Engineering", intake:24},
+      {name:"M.Tech – VLSI & Embedded Systems (ECE)", intake:18},
+      {name:"M.Tech – Aerospace Engineering", intake:18},
+      {name:"M.Tech – Machine Design (Mechanical)", intake:18},
+      {name:"M.Tech – Structural Engineering (Civil)", intake:18}
+    ],
+    note: "Civil Engineering is not currently offered at the UG (B.Tech) level at this campus, though it is offered as a PG (M.Tech) specialization.",
+    hods: {
+      "CSE":"Dr. S. Shanthi",
+      "AI & ML":"Dr. A. Nagaraju",
+      "IT":"Dr. I. Umamaheswararao",
+      "ECE":"Dr. K. Mallikharjuna Lingam (direct: +91 9505237779, mallikarjunk24@gmail.com)",
+      "EEE":"Dr. Karimulla Peerla Shaik",
+      "Mechanical":"Dr. Desu Damodara Reddy",
+      "Aeronautical":"Dr. M. Mohammed Mohaideen"
+    }
+  },
+  programs: {
+    duration: "Regular B.Tech is 4 years (8 semesters). Lateral entry (for diploma holders) joins the 2nd year / 3rd semester and runs 3 years (6 semesters).",
+    lateralEligibility: "Lateral entry is via TG ECET rank, up to 20% of the supernumerary intake, available across CSE (incl. sub-branches), ECE, Mechanical, Aeronautical, and IT — subject to seat vacancy.",
+    specializations: "CSE offers elective tracks in AI/ML, Data Science, Cyber Security and IoT alongside the core degree. IT and CSD (Computer Science & Design) are offered as standalone degrees. Aeronautical, Mechanical and ECE are offered as standard core branches."
+  },
+  admissions: {
+    routes: [
+      {
+        name:"Regular B.Tech – Category A (Convener Quota, ~70% of seats)",
+        detail:"Merit-driven via TG EAPCET (formerly TS EAMCET); JEE Main ranks considered in some rounds. Candidate must have passed/appeared for Intermediate (10+2) with MPC. Minimum marks: 45% aggregate (OC), 40% (BC/SC/ST). Must be a Telangana/Andhra Pradesh domicile satisfying local status; minimum age 16 as of Dec 31 of the admission year."
+      },
+      {
+        name:"B.Tech Lateral Entry (2nd year)",
+        detail:"Fills 10–20% of sanctioned intake for diploma holders, via TG ECET rank. Requires a Diploma in Engineering/Technology or a 3-year B.Sc. with Mathematics. Minimum marks: 45% (General), 40% (Reserved categories)."
+      },
+      {
+        name:"Management / NRI Quota – Category B (~30% of seats)",
+        detail:"Direct college allocation per TGCHE guidelines. TG EAPCET/JEE Main rank is beneficial but not always mandatory. Requires Class 12/Intermediate with PCM from a recognized board, minimum 50% aggregate in PCM. Supernumerary seats available for Foreign Nationals/OCI/CIWG under AICTE norms. Apply directly via the MRCET Admission Portal."
+      }
+    ],
+    documents: ["Provisional Allotment Order", "Entrance exam rank card / hall ticket (EAMCET/JEE/GATE as applicable)", "SSC (Class 10) certificate", "Intermediate/Diploma certificate & marksheets", "Transfer Certificate (original)", "Bonafide/study certificates from Class 6 onward", "Caste certificate (if claiming reservation)", "Aadhaar card copy", "5 passport-size photographs", "Income certificate (for fee reimbursement/scholarships)", "Migration certificate (if from outside Telangana)"],
+    documentsNote: "Bring 3–4 sets of self-attested photocopies along with originals for verification.",
+    timeline2026_27: [
+      ["TG EAPCET application window", "March 2026 – April 2026"],
+      ["Entrance examinations", "April 2026 – June 2026"],
+      ["Counselling (TG EAPCET & TG ICET)", "Concluded — typically July–August 2026"],
+      ["Commencement of classes (1st year)", "August 17, 2026"],
+      ["Final cut-off for vacant seats & lateral entry", "September 14, 2026"]
+    ],
+    timelineNote: "The 2026–27 admission cycle has concluded for this academic year. PG (M.Tech) tracks generally follow national GATE deadlines, closing in late September."
+  },
+  fees: {
+    tuition: "Convener Quota (Category-A): approx. ₹1,00,000–₹1,13,000 per year. Management Quota (Category-B): approx. ₹1,20,000–₹1,40,000 per year (can run higher for high-demand CSE specializations). This structure applies broadly across CSE, AI&ML, Data Science, Cyber Security, IT, ECE, EEE, Aeronautical and Mechanical for 2026–27.",
+    hostel: "Reported in the ₹60,000–₹1,00,000 per year range depending on room/mess plan, plus a separate refundable caution deposit (approx. ₹5,000). This figure varies between sources on file — confirm the exact current-year amount with the hostel office.",
+    other: [
+      "University Common Services / Special Fee: ₹5,500–₹8,500/year (library, lab, insurance, sports)",
+      "JNTUH Examination Fee: approx. ₹1,200/semester",
+      "One-time Admission/Registration Fee: ₹2,000–₹5,000 (first year only)",
+      "College bus transport (optional): ₹30,000–₹35,000/year depending on route"
+    ],
+    disclaimer: "These figures are on file as approximate and should be verified with the MRCET admissions/accounts office for the exact current academic year amount before making payment decisions."
+  },
+  scholarships: {
+    main: "Telangana e-PASS post-matric scholarship / fee reimbursement (state government scheme), facilitated by MRCET.",
+    eligibility: "Available to SC, ST, BC, EBC, Minority and PWD category students admitted via official counselling (e.g. TG EAPCET). Parental annual income must be below ₹2 lakh (SC/ST/BC/PWD) or below ₹1 lakh (OC/EBC).",
+    note: "Students admitted under Management Quota, or without a valid entrance rank, are generally not eligible for government fee reimbursement. MRCET does not offer dedicated internal sports or merit cash scholarships — financial relief is tied to state welfare policy."
+  },
+  placements: {
+    highest: "Up to ₹30 LPA",
+    average: "Approx. ₹4–6 LPA (recent NIRF data places the median B.Tech package around ₹6 LPA)",
+    rate: "Roughly 70–90% of eligible graduates placed (NIRF data: 840 of 978 graduating UG students placed in a recent cycle)",
+    yearNote: "Figures reflect recent graduating cycles up to 2024–26 on file; ask the Placement Cell for the exact figure for a specific batch year.",
+    recruiters: ["Amazon","TCS","Cognizant","Deloitte","Tech Mahindra","HCL Technologies","Wipro","Capgemini"]
+  },
+  training: {
+    crt: [
+      ["Semester I","Soft Skills"],
+      ["Semester II","Quantitative Aptitude"],
+      ["Semester III","Learning English Effectively"],
+      ["Semester IV","Technical Skills"],
+      ["Semester V","Logical & Analytical Reasoning"],
+      ["Semester VI","Personality Development Skills"],
+      ["Sem VI–VII (Summer)","Special Placement-Focused Training"]
+    ],
+    certifications: "Java (Oracle Academy), .NET (Microsoft), Oracle SQL, CISCO Networking, Big Data Analytics & R-Programming, AutoCAD, CATIA, Pro-E, MATLAB, 3D Printing, Robotics, Business English Certification (Cambridge), Oxford Achiever's Certification.",
+    internships: "Internal Software Development Cell (SDC/TechPark) gives 3rd/4th year students simulated real-world project roles. Placement Cell facilitates industry summer internships, with high performers often converted to Pre-Placement Offers (PPOs). MoUs with National Aerospace Laboratories (NAL) and TASK (Telangana Academy for Skill & Knowledge) enable supervised industry project work.",
+    mentorship: "Corporate mentorship and live tech talks with companies including Infosys and Accenture."
+  },
+  academics: {
+    calendar: "Two semesters per year — Odd (I, III, V, VII: roughly June/July–Oct/Nov) and Even (II, IV, VI, VIII: roughly Dec–Mar/Apr). Minimum 90 instructional days per semester, split into two ~8-week spells around Mid-Term exams.",
+    attendance: "75% aggregate attendance is mandatory to sit the End Semester Exam. 65–74% may be condoned by the Academic Committee on genuine medical grounds (with documentation + condonation fee). Below 65% cannot be condoned — the student is detained and must seek readmission to that semester.",
+    exams: "Theory papers (R24 regulations): 40:60 split — Continuous Internal Evaluation (CIE) 40 marks (two mid-terms averaged, 30 marks total: 10 objective + 20 descriptive each; plus 10 marks for assignments/viva/seminars) and End Semester Exam (SEE) 60 marks, 3-hour exam covering all 5 units with choice-based questions. Older regulations (R18/R22) used a 30:70 split. Practicals are evaluated 30:70 or 40:60 depending on branch, combining day-to-day lab performance with an internal test, and end exams assessed jointly by an internal + external examiner."
+  },
+  campus: {
+    library: "MRCET Central Library partners with DELNET for inter-library loans and subscribes to national/international journals. The Digital Library offers IP-based access to 20,000+ e-books, 59,000+ e-journals and 14,000+ instructional videos, plus a 50-computer lab for e-resource/OPAC access.",
+    labs: "Notable labs: advanced computing centers for CSE/IT/AI&ML (Linux, Web Tech, Data Warehousing, ML, Data Structures); ECE labs with microprocessors, communication kits and simulation software; Mechanical's Fluid Mechanics & Hydraulic Machinery Lab (Pelton/Kaplan/Francis turbines), Materials Engineering Lab, Strength of Materials Lab; Aeronautical's aerodynamics, aircraft structures, propulsion, avionics and flight dynamics labs; 3 Physics and 2 Chemistry labs for 1st years; plus an AICTE IDEA Lab for 3D printing and rapid prototyping.",
+    hostel: "Separate hostel buildings for boys and girls. Rooms typically shared 4–5 students. Amenities: 24-hour Wi-Fi, washing machines, hot water, RO drinking water, study spaces, round-the-clock single-entry security. (Private hostels near campus also available, roughly ₹3,000–5,500/month, when on-campus capacity is capped.)",
+    transport: "An extensive college bus fleet covers major routes across Hyderabad and Secunderabad for day scholars and staff.",
+    sports: "Outdoor grounds/courts for Cricket, Football, Volleyball, Basketball and Badminton; indoor Table Tennis, Chess and Carrom; a full campus gymnasium open to day scholars and hostellers.",
+    other: "A spacious canteen serving South Indian meals/snacks at subsidized pricing, and an on-site Health Centre with basic diagnostics and a first-aid room."
+  }
+};
+
+const KB_TEXT = JSON.stringify(KB);
+
+/* ============ QUICK TOPICS ============ */
+const TOPICS = [
+  {label:"🎓 Admissions", q:"What are the admission routes and eligibility at MRCET?"},
+  {label:"📚 Departments", q:"What branches does MRCET offer and what is the intake for each?"},
+  {label:"💰 Fees", q:"What are the B.Tech fees at MRCET?"},
+  {label:"💼 Placements", q:"What are MRCET's latest placement statistics?"},
+  {label:"📝 Academics", q:"What is the attendance requirement and exam pattern at MRCET?"},
+  {label:"🏫 Campus", q:"What campus facilities does MRCET have?"},
+  {label:"🏠 Hostel", q:"Tell me about hostel facilities and fees at MRCET."},
+  {label:"📞 Contact", q:"How do I contact MRCET admissions or the placement cell?"}
+];
+
+const STATS = [
+  {n:"2004", l:"Founded"},
+  {n:"NAAC A", l:"Grade"},
+  {n:"10", l:"UG Branches"},
+  {n:"70–90%", l:"Placement Rate"},
+  {n:"₹30 LPA", l:"Highest Package"}
+];
+
+/* ============ RENDER TOPICS / STATS ============ */
+const statsEl = document.getElementById('stats');
+STATS.forEach(s=>{
+  const d = document.createElement('div');
+  d.className='stat';
+  d.innerHTML = `<b>${s.n}</b><span>${s.l}</span>`;
+  statsEl.appendChild(d);
+});
+
+const chipsEl = document.getElementById('chips');
+TOPICS.forEach(t=>{
+  const b = document.createElement('button');
+  b.className='chip';
+  b.textContent = t.label;
+  b.addEventListener('click', ()=> handleUserMessage(t.q));
+  chipsEl.appendChild(b);
+});
+
+/* ============ CHAT ENGINE ============ */
+const chatScroll = document.getElementById('chatScroll');
+const inputBox = document.getElementById('inputBox');
+const sendBtn = document.getElementById('sendBtn');
+
+function scrollBottom(){ requestAnimationFrame(()=>{ chatScroll.scrollTop = chatScroll.scrollHeight; }); }
+
+function addMessage(role, html){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + role;
+  const initials = role === 'bot' ? 'M' : 'You'.slice(0,2);
+  wrap.innerHTML = `<div class="avatar">${role==='bot' ? 'M' : '🙂'}</div><div class="bubble">${html}</div>`;
+  chatScroll.appendChild(wrap);
+  scrollBottom();
+  return wrap;
+}
+
+function addTyping(){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg bot';
+  wrap.id = 'typingRow';
+  wrap.innerHTML = `<div class="avatar">M</div><div class="bubble"><div class="typing"><i></i><i></i><i></i></div></div>`;
+  chatScroll.appendChild(wrap);
+  scrollBottom();
+}
+function removeTyping(){
+  const t = document.getElementById('typingRow');
+  if(t) t.remove();
+}
+
+/* very small markdown-ish renderer: **bold**, bullet lists, [!note]...  */
+function renderText(text){
+  let safe = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // restore bold markers
+  safe = safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // note blocks: lines starting with "Note:" or "Important:"
+  const lines = safe.split(/\n+/);
+  let html = '';
+  let inList = false;
+  lines.forEach(line=>{
+    const trimmed = line.trim();
+    if(!trimmed){ return; }
+    if(/^[-•]\s+/.test(trimmed)){
+      if(!inList){ html += '<ul>'; inList = true; }
+      html += `<li>${trimmed.replace(/^[-•]\s+/, '')}</li>`;
+    } else {
+      if(inList){ html += '</ul>'; inList = false; }
+      if(/^(Note:|Important:)/i.test(trimmed)){
+        html += `<div class="note">${trimmed}</div>`;
+      } else {
+        html += `<p>${trimmed}</p>`;
+      }
+    }
+  });
+  if(inList) html += '</ul>';
+  return html || `<p>${safe}</p>`;
+}
+
+const SYSTEM_INSTRUCTIONS = `You are the MRCET AI Assistant, a professional digital help desk for Malla Reddy College of Engineering & Technology (MRCET), College Code N3, Identifier MLRD.
+
+Rules:
+- Answer ONLY using the MRCET_KNOWLEDGE_BASE JSON provided below. Never invent facts, numbers, names, or dates not present in it.
+- If the requested information is not present in the knowledge base, say clearly: "I don't currently have verified information about this from the MRCET knowledge base. Please check with the concerned MRCET department or official college source." Do not guess.
+- Where the knowledge base itself flags a figure as approximate or in need of verification (e.g. hostel fees, placement year ranges), pass that caveat on to the user plainly.
+- Be professional, clear, and concise. Use short paragraphs and, where useful, bullet lines starting with "- ". Use **bold** sparingly for key terms/numbers. Do not use markdown headers, tables, or code blocks.
+- If a question is ambiguous (e.g. asks "the fee" without a branch), give the general answer available and briefly note that it can vary, rather than refusing.
+- Never request or process sensitive personal data (passwords, OTPs, bank details, Aadhaar numbers).
+- Keep answers focused — typically 2–5 short paragraphs or a short bullet list, not exhaustive dumps of the whole knowledge base unless asked for everything.
+- If asked something entirely unrelated to MRCET, politely redirect: explain you're the MRCET AI Assistant and can help with admissions, academics, departments, placements, campus facilities, and student services.
+
+MRCET_KNOWLEDGE_BASE:
+${KB_TEXT}`;
+
+/* ============ API KEY MANAGEMENT ============ */
+const KEY_STORAGE = 'mrcet_anthropic_key';
+const keyBar = document.getElementById('keyBar');
+const keyStatus = document.getElementById('keyStatus');
+const keyBtn = document.getElementById('keyBtn');
+const modalOverlay = document.getElementById('modalOverlay');
+const apiKeyInput = document.getElementById('apiKeyInput');
+
+function getKey(){
+  try{ return localStorage.getItem(KEY_STORAGE) || ''; }catch(e){ return ''; }
+}
+function setKey(k){
+  try{ localStorage.setItem(KEY_STORAGE, k); }catch(e){}
+}
+function clearKey(){
+  try{ localStorage.removeItem(KEY_STORAGE); }catch(e){}
+}
+function refreshKeyBar(){
+  const k = getKey();
+  if(k){
+    keyBar.classList.add('ok');
+    keyStatus.textContent = '✅ API key connected — live answers enabled';
+    keyBtn.textContent = 'Change key';
+  } else {
+    keyBar.classList.remove('ok');
+    keyStatus.textContent = '🔑 Add your Anthropic API key to enable live answers';
+    keyBtn.textContent = 'Add key';
+  }
+}
+keyBtn.addEventListener('click', ()=>{
+  apiKeyInput.value = getKey();
+  modalOverlay.classList.add('show');
+  apiKeyInput.focus();
+});
+document.getElementById('modalCancel').addEventListener('click', ()=> modalOverlay.classList.remove('show'));
+document.getElementById('modalSave').addEventListener('click', ()=>{
+  const v = apiKeyInput.value.trim();
+  if(v){ setKey(v); } else { clearKey(); }
+  refreshKeyBar();
+  modalOverlay.classList.remove('show');
+});
+modalOverlay.addEventListener('click', (e)=>{ if(e.target === modalOverlay) modalOverlay.classList.remove('show'); });
+
+async function callClaude(userText){
+  const key = getKey();
+  if(!key) return null;
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': key,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({
+      model:'claude-sonnet-4-6',
+      max_tokens:1000,
+      messages:[{ role:'user', content: SYSTEM_INSTRUCTIONS + "\n\nStudent/visitor question: " + userText }]
+    })
+  });
+  if(!resp.ok){
+    const errBody = await resp.text().catch(()=> '');
+    throw new Error('API error ' + resp.status + ': ' + errBody);
+  }
+  const data = await resp.json();
+  const text = (data.content || []).map(b=> b.type==='text' ? b.text : '').join('\n').trim();
+  return text;
+}
+
+function localFallback(question){
+  // Lightweight offline fallback if the sample capability is unavailable.
+  const q = question.toLowerCase();
+  const hit = (kw)=> kw.some(k=>q.includes(k));
+  if(hit(['fee','fees','tuition','cost'])){
+    return `**Tuition:** ${KB.fees.tuition}\n\n**Hostel:** ${KB.fees.hostel}\n\nNote: ${KB.fees.disclaimer}`;
+  }
+  if(hit(['admission','apply','eligib','eapcet','ecet'])){
+    return KB.admissions.routes.map(r=>`- **${r.name}:** ${r.detail}`).join('\n');
+  }
+  if(hit(['placement','package','recruit','company','companies'])){
+    return `**Highest package:** ${KB.placements.highest}\n**Average package:** ${KB.placements.average}\n**Placement rate:** ${KB.placements.rate}\n\nTop recruiters: ${KB.placements.recruiters.join(', ')}.\n\nNote: ${KB.placements.yearNote}`;
+  }
+  if(hit(['hostel'])){
+    return KB.campus.hostel + '\n\n**Hostel fee:** ' + KB.fees.hostel;
+  }
+  if(hit(['contact','phone','email','number'])){
+    return `**Admissions:** ${KB.contact.admissions.phones.join(' / ')}, ${KB.contact.admissions.email}\n**Placement Cell:** ${KB.contact.placementCell.name} — ${KB.contact.placementCell.phone}, ${KB.contact.placementCell.email}\n**General:** ${KB.contact.phones.join(' / ')}`;
+  }
+  if(hit(['department','branch','course','intake'])){
+    return KB.departments.ug.map(d=>`- ${d.name} — ${d.intake} seats`).join('\n');
+  }
+  return "I don't currently have verified information about this from the MRCET knowledge base. Please check with the concerned MRCET department or official college source.";
+}
+
+async function handleUserMessage(text){
+  text = (text||'').trim();
+  if(!text) return;
+  addMessage('user', renderText(text));
+  inputBox.value = '';
+  inputBox.style.height = 'auto';
+  addTyping();
+  sendBtn.disabled = true;
+
+  try{
+    if(getKey()){
+      const answer = await callClaude(text);
+      removeTyping();
+      addMessage('bot', renderText(answer || "I don't currently have verified information about this. Please check with the concerned MRCET department."));
+    } else {
+      await new Promise(r=>setTimeout(r, 350));
+      removeTyping();
+      addMessage('bot', renderText(localFallback(text) + "\n\nNote: Add an API key (top bar) for fuller, live-reasoned answers."));
+    }
+  }catch(err){
+    removeTyping();
+    addMessage('bot', renderText("I couldn't reach the API just now (" + (err && err.message ? err.message.slice(0,120) : 'connection error') + "). Here's what I can answer offline:\n\n" + localFallback(text)));
+  }
+  sendBtn.disabled = false;
+  scrollBottom();
+}
+
+sendBtn.addEventListener('click', ()=> handleUserMessage(inputBox.value));
+inputBox.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    handleUserMessage(inputBox.value);
+  }
+});
+inputBox.addEventListener('input', ()=>{
+  inputBox.style.height = 'auto';
+  inputBox.style.height = Math.min(inputBox.scrollHeight, 110) + 'px';
+});
+
+/* ============ WELCOME ============ */
+function welcome(){
+  addMessage('bot', renderText(
+    "👋 Welcome to the **MRCET AI Assistant**.\n\nI can help with information about Malla Reddy College of Engineering & Technology — admissions, courses, fees, placements, academics, and campus life.\n\nCollege Code: **N3**  ·  Identifier: **MLRD**\n\nTap a topic above, or type your question below."
+  ));
+}
+
+(function boot(){
+  refreshKeyBar();
+  welcome();
+})();
+</script>
+</body>
+</html>
